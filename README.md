@@ -1,13 +1,12 @@
-# AirFlow Select — Multi-Nozzle Ring Blower Sizing
+# AirFlow Select — Easy Multi-Nozzle Ring Blower Sizing
 
-> **v1.2 UI/UX 개편:** 계산 화면을 카드 반복형 폼에서 **엔지니어링 워크스페이스**로 재설계했습니다. 노즐군은 비교 가능한 스케줄 표로 배열하고, 상세 치수는 필요한 행만 펼쳐 편집합니다. 우측에는 링블로워 Duty Point를 고정 요약하고, 후보 비교는 노즐표 바로 아래에 배치했습니다. 계산식은 v1.1과 동일합니다.
-
+> **v1.3 간편모드 개편:** 기본 계산 화면에서 사용자가 입력하는 항목을 **제거 강도 → 노즐 모양/규격/수량**으로 축소했습니다. Cd, 온도, 대기압, 배관손실, 여유율, 효율은 기본값으로 자동 적용하고 `전문가 설정`에 숨겼습니다. 링블로워 결과는 필요한 풍량·풍압·권장 모터 3개 값으로 즉시 표시합니다. 계산식은 이전 버전과 동일합니다.
 
 도금 연속라인의 Air Blow 공정에서 **다공 홀, 슬롯/장공, 사각, 원형, 사용자 지정 면적 노즐**을 기준으로 필요한 풍속·풍량·풍압·모터 용량을 빠르게 산정하고, 블로워 후보를 비교하며 PDF/PNG 보고서를 출력하는 정적 웹 계산기입니다.
 
 ## Preview
 
-첫 화면은 `공통 조건 → 노즐 스케줄 → 링블로워 Duty Point → 후보 비교` 흐름으로 구성됩니다. 여러 노즐군의 형상·규격·수량·풍속·그룹 풍량·분기압을 한 행씩 비교하고, `상세` 버튼으로 해당 노즐의 개구 치수·Cd·분기손실만 펼쳐 편집합니다. 보고서 탭에서는 동일한 계산값을 `Technical Blue`, `Mono Print`, `Dark Industrial`, `Compact` 네 가지 스타일로 전환할 수 있습니다.
+첫 화면은 `① 제거 강도 선택 → ② 노즐 모양을 눌러 추가 → ③ 규격·수량 입력 → 링블로워 최소 사양 확인` 흐름입니다. 슬롯은 길이와 Gap, 다공 홀은 직경과 홀 수처럼 **해당 형상에 꼭 필요한 치수만** 노출합니다. 풍속·Cd·분기손실 같은 전문값은 필요할 때만 펼칩니다. 보고서 탭에서는 동일한 계산값을 `Technical Blue`, `Mono Print`, `Dark Industrial`, `Compact` 네 가지 스타일로 전환할 수 있습니다.
 
 ![Social Preview](public/og-image.png)
 
@@ -17,9 +16,10 @@
 - 제거 강도별 초기 풍속 프리셋(경험적 시작값, 표준 아님)
 - 공기 밀도(온도·대기압), Cd, 배관/필터 손실, 풍량/압력 여유, 효율 반영
 - 서로 다른 노즐군을 한 계산에 혼합하고 병렬 총 풍량 자동 합산
-- 데스크톱 노즐 스케줄 표 + 모바일 카드형 자동 전환
-- Progressive Disclosure: 상세 형상/Cd/분기손실은 선택한 노즐만 펼쳐 편집
-- 우측 Sticky Duty Point: 설계 풍량·풍압·모터를 항상 확인
+- 클릭형 노즐 추가: 슬롯 / 다공 홀 / 원형 / 사각 / 직접 면적
+- 간편 입력: 형상별 필수 규격 + 노즐 수량만 기본 노출
+- Progressive Disclosure: 풍속/Cd/분기손실/공기조건/여유율은 전문가 설정으로 숨김
+- 우측 결과 카드: 필요 풍량·필요 풍압·권장 모터를 즉시 확인
 - 요구 Duty Point: m³/min + kPa(g)
 - 축동력 및 권장 표준 모터 프레임 추정
 - 사용자 입력 블로워 후보 적합/부족 판정
@@ -104,7 +104,7 @@ npm run build
 
 ### Windows 원클릭
 
-`run-github-bootstrap.cmd`를 더블클릭하는 것을 권장합니다. v1.2.0에서도 Bootstrap은 사용자가 제공한 검증된 배치 흐름을 기준으로 다시 작성한 ASCII + Windows CRLF 전용 CMD입니다. PowerShell Bootstrap은 사용하지 않습니다. `gh repo view`가 실패하면 이를 오류로 종료하지 않고 저장소가 아직 없는 정상 상황으로 간주하여 `gh repo create`를 실행합니다. Git/GitHub CLI 확인 → 로그인 → repo 확인/생성 → origin 설정 → commit/push → Pages/Actions 확인 → `v1.2.0` tag 생성을 순차 처리합니다. Node.js/npm은 로컬 검증에만 선택적으로 사용하며, 없어도 GitHub Actions가 원격에서 빌드합니다. Token/Password는 스크립트에 저장하지 않습니다.
+`run-github-bootstrap.cmd`를 더블클릭하는 것을 권장합니다. v1.3.0에서도 Bootstrap은 사용자가 제공한 검증된 배치 흐름을 기준으로 다시 작성한 ASCII + Windows CRLF 전용 CMD입니다. PowerShell Bootstrap은 사용하지 않습니다. `gh repo view`가 실패하면 이를 오류로 종료하지 않고 저장소가 아직 없는 정상 상황으로 간주하여 `gh repo create`를 실행합니다. Git/GitHub CLI 확인 → 로그인 → repo 확인/생성 → origin 설정 → commit/push → Pages/Actions 확인 → `v1.3.0` tag 생성을 순차 처리합니다. Node.js/npm은 로컬 검증에만 선택적으로 사용하며, 없어도 GitHub Actions가 원격에서 빌드합니다. Token/Password는 스크립트에 저장하지 않습니다.
 
 ## Configuration
 
@@ -125,7 +125,7 @@ GitHub Pages Settings에서 Custom domain을 등록하고 HTTPS 강제를 활성
 
 - Description: `Industrial air blower and nozzle sizing calculator with PDF/PNG engineering reports`
 - Topics: `engineering`, `blower`, `air-knife`, `calculator`, `vanilla-js`, `static-site`, `github-pages`
-- Initial tag: `v1.2.0`
+- Initial tag: `v1.3.0`
 - Initial commit: `feat: launch airflow blower sizing calculator`
 
 ## License

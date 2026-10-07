@@ -2,11 +2,10 @@ const R_AIR = 287.05;
 const MM_AQ_PER_KPA = 101.971621;
 
 const presets = [
-  {id:'light',label:'1단계 · 가벼운 이물 / 예비 건조',min:15,max:25,def:20},
-  {id:'standard-water',label:'2단계 · 일반 물방울 제거',min:25,max:40,def:32},
-  {id:'water-film',label:'3단계 · 수막 / 강한 헹굼수 제거',min:40,max:55,def:48},
-  {id:'debris',label:'4단계 · 스케일 / 무거운 이물',min:45,max:65,def:55},
-  {id:'viscous',label:'5단계 · 점성 액체 / 강력 제거',min:55,max:80,def:65}
+  {id:'light',label:'가볍게',desc:'먼지 · 잔물기',min:15,max:25,def:20},
+  {id:'standard-water',label:'보통',desc:'일반 물방울',min:25,max:40,def:32},
+  {id:'water-film',label:'강하게',desc:'수막 · 헹굼수',min:40,max:55,def:48},
+  {id:'viscous',label:'매우 강하게',desc:'점성액 · 강력 제거',min:55,max:80,def:65}
 ];
 const nozzleLabels = {'multi-hole':'다공 홀','slot':'슬롯 / 장공','rectangle':'사각','round':'원형','custom':'지정 면적'};
 
@@ -17,18 +16,17 @@ const defaultConfig = {
   reportTheme:'technical'
 };
 const defaultNozzles = [
-  {id:'n1',name:'상부 Air Knife',type:'slot',qty:2,cd:0.90,velocityMps:32,branchLossKpa:0.20,slotLengthMm:600,slotGapMm:1.5,openingsPerNozzle:1,holeDiameterMm:3,widthMm:20,heightMm:2,diameterMm:12,customAreaMm2:900},
-  {id:'n2',name:'측면 다공 노즐',type:'multi-hole',qty:2,cd:0.88,velocityMps:32,branchLossKpa:0.25,slotLengthMm:300,slotGapMm:1.0,openingsPerNozzle:24,holeDiameterMm:3,widthMm:15,heightMm:2,diameterMm:10,customAreaMm2:250}
+  {id:'n1',name:'노즐 1',type:'slot',qty:2,cd:0.90,velocityMps:32,branchLossKpa:0.20,slotLengthMm:600,slotGapMm:1.5,openingsPerNozzle:1,holeDiameterMm:3,widthMm:20,heightMm:2,diameterMm:12,customAreaMm2:900}
 ];
 const defaultCandidates = [
   {id:'c1',name:'후보 A',flowM3min:4.5,pressureKpa:3.0,motorKw:0.75},
   {id:'c2',name:'후보 B',flowM3min:6.0,pressureKpa:5.0,motorKw:1.5}
 ];
 
-const CONFIG_KEY='airflow-selector-config-v2';
-const NOZZLE_KEY='airflow-selector-nozzles-v2';
-const HISTORY_KEY='airflow-selector-history-v2';
-const CANDIDATE_KEY='airflow-selector-candidates-v2';
+const CONFIG_KEY='airflow-selector-config-v3';
+const NOZZLE_KEY='airflow-selector-nozzles-v3';
+const HISTORY_KEY='airflow-selector-history-v3';
+const CANDIDATE_KEY='airflow-selector-candidates-v3';
 const THEME_KEY='airflow-selector-theme-v1';
 const $ = id => document.getElementById(id);
 const safeParse=(raw,fallback)=>{try{return raw?JSON.parse(raw):fallback}catch{return fallback}};
@@ -130,41 +128,49 @@ function iconSvg(name){
 function compactNumber(key,value,unit,opts=''){
   return `<div class="compact-number"><input data-k="${key}" type="number" ${opts} value="${value}"><span>${unit}</span></div>`;
 }
+function simpleGeometryFields(n){
+  if(n.type==='multi-hole') return `<label><span>홀 직경</span><div class="simple-unit"><input data-k="holeDiameterMm" type="number" min="0" step="0.1" value="${n.holeDiameterMm}"><em>mm</em></div></label><span class="spec-x">×</span><label><span>홀 수</span><div class="simple-unit"><input data-k="openingsPerNozzle" type="number" min="1" step="1" value="${n.openingsPerNozzle}"><em>홀/노즐</em></div></label>`;
+  if(n.type==='slot') return `<label><span>길이</span><div class="simple-unit"><input data-k="slotLengthMm" type="number" min="0" step="1" value="${n.slotLengthMm}"><em>mm</em></div></label><span class="spec-x">×</span><label><span>Gap</span><div class="simple-unit"><input data-k="slotGapMm" type="number" min="0" step="0.05" value="${n.slotGapMm}"><em>mm</em></div></label>`;
+  if(n.type==='rectangle') return `<label><span>폭</span><div class="simple-unit"><input data-k="widthMm" type="number" min="0" step="0.1" value="${n.widthMm}"><em>mm</em></div></label><span class="spec-x">×</span><label><span>높이</span><div class="simple-unit"><input data-k="heightMm" type="number" min="0" step="0.1" value="${n.heightMm}"><em>mm</em></div></label>`;
+  if(n.type==='round') return `<label><span>직경</span><div class="simple-unit"><input data-k="diameterMm" type="number" min="0" step="0.1" value="${n.diameterMm}"><em>mm</em></div></label>`;
+  return `<label><span>개구 면적</span><div class="simple-unit"><input data-k="customAreaMm2" type="number" min="0" step="1" value="${n.customAreaMm2}"><em>mm²/노즐</em></div></label>`;
+}
+function typeShape(type){return {'slot':'shape-slot','multi-hole':'shape-holes','round':'shape-round','rectangle':'shape-rect','custom':'shape-custom'}[type]||'shape-custom'}
 function renderNozzles(){
   if(!result) result=calculate();
   const root=$('nozzleList');
   const countEl=$('nozzleCount');if(countEl)countEl.textContent=nozzles.length;
-  if(!nozzles.length){root.innerHTML='<div class="empty-state nozzle-empty"><b>설치 노즐이 없습니다.</b><span>오른쪽 위 “노즐군 추가”로 첫 노즐을 등록하세요.</span></div>';return}
+  if(!nozzles.length){root.innerHTML='<div class="empty-state nozzle-empty"><b>아직 노즐이 없습니다.</b><span>위에서 노즐 모양을 하나 눌러 추가하세요.</span></div>';return}
   const criticalId=result.critical?.id;
-  root.innerHTML=`<div class="nozzle-matrix-head" aria-hidden="true"><span>노즐군</span><span>형상 / 규격</span><span>수량</span><span>풍속</span><span>그룹 풍량</span><span>분기 요구압</span><span>관리</span></div><div class="nozzle-matrix-body">${nozzles.map((n,i)=>{
-    const g=result.groups[i]||calcNozzle(n,result.rho);
-    const expanded=expandedNozzles.has(n.id);
-    const critical=n.id===criticalId;
-    return `<article class="nozzle-matrix-row ${critical?'is-critical':''} ${expanded?'is-open':''}" data-id="${n.id}">
-      <div class="nozzle-summary-grid">
-        <div class="nm-cell nm-name-cell"><span class="cell-label">노즐군</span><span class="nozzle-index">N${String(i+1).padStart(2,'0')}</span><div class="nm-name-wrap"><input class="nozzle-name" data-k="name" value="${escapeHtml(n.name)}" aria-label="노즐군 이름">${critical?'<span class="critical-badge">지배 노즐</span>':''}</div></div>
-        <div class="nm-cell nm-spec-cell"><span class="cell-label">형상 / 규격</span><select class="nozzle-type" data-k="type" aria-label="노즐 형상">${Object.entries(nozzleLabels).map(([v,l])=>`<option value="${v}" ${n.type===v?'selected':''}>${l}</option>`).join('')}</select><span class="spec-line" data-r="spec">${escapeHtml(nozzleSpec(n))}</span></div>
-        <div class="nm-cell"><span class="cell-label">수량</span>${compactNumber('qty',n.qty,'EA','min="0" step="1"')}</div>
-        <div class="nm-cell"><span class="cell-label">풍속</span>${compactNumber('velocityMps',n.velocityMps,'m/s','min="0" step="1"')}</div>
-        <div class="nm-cell nm-result"><span class="cell-label">그룹 풍량</span><strong data-r="flow">${fmt(g.groupFlowM3min,3)}</strong><small>m³/min</small></div>
-        <div class="nm-cell nm-result pressure"><span class="cell-label">분기 요구압</span><strong data-r="pressure">${fmt(g.branchRequiredKpa,3)}</strong><small>kPa</small></div>
-        <div class="nm-cell nm-actions"><span class="cell-label">관리</span><button class="detail-btn" data-action="toggle" aria-expanded="${expanded}" title="상세 규격 편집">${iconSvg('edit')}<span>상세</span></button><button class="square-action" data-action="duplicate" title="노즐군 복제" aria-label="노즐군 복제">${iconSvg('copy')}</button><button class="square-action danger" data-action="delete" title="노즐군 삭제" aria-label="노즐군 삭제">${iconSvg('trash')}</button></div>
+  root.innerHTML=nozzles.map((n,i)=>{
+    const g=result.groups[i]||calcNozzle(n,result.rho),critical=n.id===criticalId;
+    return `<article class="simple-nozzle-card ${critical?'is-critical':''}" data-id="${n.id}">
+      <div class="simple-nozzle-top">
+        <div class="simple-nozzle-ident"><span class="shape-icon ${typeShape(n.type)}"></span><div><span class="nozzle-number">N${String(i+1).padStart(2,'0')}</span><b>${escapeHtml(nozzleLabels[n.type])}</b>${critical?'<small class="critical-badge">풍압 기준</small>':''}</div></div>
+        <div class="simple-card-actions"><button data-action="duplicate" title="복제">${iconSvg('copy')}</button><button data-action="delete" class="danger" title="삭제">${iconSvg('trash')}</button></div>
       </div>
-      <div class="nozzle-detail-panel" ${expanded?'':'hidden'}>
-        <div class="detail-section"><div class="detail-title"><b>형상 규격</b><span>개구면적을 결정하는 치수</span></div><div class="detail-grid geometry-inputs">${geometryFields(n)}</div></div>
-        <div class="detail-section"><div class="detail-title"><b>유동 보정</b><span>현장/제조사 값이 있으면 보정</span></div><div class="detail-grid correction-inputs"><label class="mini-field"><span>방출계수 Cd</span><input data-k="cd" type="number" min="0.1" max="1" step="0.01" value="${n.cd}"></label><label class="mini-field"><span>분기 배관 손실</span><div class="unit-input"><input data-k="branchLossKpa" type="number" min="0" step="0.05" value="${n.branchLossKpa}"><em>kPa</em></div></label></div></div>
-        <div class="detail-result-grid">
-          <div><span>1개 노즐 개구면적</span><b data-r="areaPer">${fmt(g.areaPerNozzle,1)}</b><em>mm²</em></div>
-          <div><span>전체 개구면적</span><b data-r="areaTotal">${fmt(g.totalAreaMm2,1)}</b><em>mm²</em></div>
-          <div><span>노즐 1개 풍량</span><b data-r="flowOne">${fmt(g.qPerNozzleM3min,3)}</b><em>m³/min</em></div>
-          <div><span>동압</span><b data-r="dynamic">${fmt(g.dynamicPressureKpa,3)}</b><em>kPa</em></div>
-          <div><span>노즐 차압</span><b data-r="deltaP">${fmt(g.nozzleDeltaPKpa,3)}</b><em>kPa</em></div>
-          <div class="highlight"><span>분기 요구압</span><b data-r="branchP">${fmt(g.branchRequiredKpa,3)}</b><em>kPa</em></div>
+      <div class="simple-nozzle-entry">
+        <div class="spec-sentence">${simpleGeometryFields(n)}</div>
+        <div class="qty-box"><span>노즐 수량</span><div><button data-action="qty-minus" type="button">−</button><input data-k="qty" type="number" min="0" step="1" value="${n.qty}"><button data-action="qty-plus" type="button">+</button><em>EA</em></div></div>
+      </div>
+      <div class="simple-nozzle-result">
+        <div><span>필요 풍량</span><strong data-r="flow">${fmt(g.groupFlowM3min,3)}</strong><em>m³/min</em></div>
+        <div><span>필요 풍압</span><strong data-r="pressure">${fmt(g.branchRequiredKpa,3)}</strong><em>kPa</em></div>
+        <span class="spec-preview" data-r="spec">${escapeHtml(nozzleSpec(n))}</span>
+      </div>
+      <details class="row-expert">
+        <summary>이 노즐만 세부 조정</summary>
+        <div class="row-expert-grid">
+          <label class="mini-field"><span>노즐 이름</span><input data-k="name" value="${escapeHtml(n.name)}"></label>
+          <label class="mini-field"><span>형상 변경</span><select data-k="type">${Object.entries(nozzleLabels).map(([v,l])=>`<option value="${v}" ${n.type===v?'selected':''}>${l}</option>`).join('')}</select></label>
+          <label class="mini-field"><span>적용 풍속</span><div class="unit-input"><input data-k="velocityMps" type="number" min="0" step="1" value="${n.velocityMps}"><em>m/s</em></div></label>
+          <label class="mini-field"><span>방출계수 Cd</span><input data-k="cd" type="number" min="0.1" max="1" step="0.01" value="${n.cd}"></label>
+          <label class="mini-field"><span>분기 손실</span><div class="unit-input"><input data-k="branchLossKpa" type="number" min="0" step="0.05" value="${n.branchLossKpa}"><em>kPa</em></div></label>
         </div>
-      </div>
+      </details>
     </article>`;
-  }).join('')}</div>`;
-  root.querySelectorAll('.nozzle-matrix-row').forEach(card=>{
+  }).join('');
+  root.querySelectorAll('.simple-nozzle-card').forEach(card=>{
     const id=card.dataset.id;
     card.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',e=>updateNozzle(id,e.target.dataset.k,e.target.value,e.target)));
     card.querySelectorAll('[data-action]').forEach(btn=>btn.addEventListener('click',()=>nozzleAction(id,btn.dataset.action)));
@@ -179,27 +185,33 @@ function updateNozzle(id,key,value,el){
 }
 function renderNozzleResultsOnly(){
   const criticalId=result.critical?.id;
-  document.querySelectorAll('.nozzle-matrix-row').forEach((card,i)=>{
+  document.querySelectorAll('.simple-nozzle-card').forEach((card,i)=>{
     const g=result.groups[i]; if(!g)return;
     const set=(key,val)=>{const el=card.querySelector(`[data-r="${key}"]`);if(el)el.textContent=val};
-    set('spec',nozzleSpec(g));set('flow',fmt(g.groupFlowM3min,3));set('pressure',fmt(g.branchRequiredKpa,3));set('areaPer',fmt(g.areaPerNozzle,1));set('areaTotal',fmt(g.totalAreaMm2,1));set('flowOne',fmt(g.qPerNozzleM3min,3));set('dynamic',fmt(g.dynamicPressureKpa,3));set('deltaP',fmt(g.nozzleDeltaPKpa,3));set('branchP',fmt(g.branchRequiredKpa,3));
+    set('spec',nozzleSpec(g));set('flow',fmt(g.groupFlowM3min,3));set('pressure',fmt(g.branchRequiredKpa,3));
     const isCritical=g.id===criticalId;card.classList.toggle('is-critical',isCritical);
-    const wrap=card.querySelector('.nm-name-wrap'),badge=wrap?.querySelector('.critical-badge');
-    if(isCritical&&!badge)wrap?.insertAdjacentHTML('beforeend','<span class="critical-badge">지배 노즐</span>');
+    const wrap=card.querySelector('.simple-nozzle-ident > div'),badge=wrap?.querySelector('.critical-badge');
+    if(isCritical&&!badge)wrap?.insertAdjacentHTML('beforeend','<small class="critical-badge">풍압 기준</small>');
     if(!isCritical&&badge)badge.remove();
   });
 }
 function nozzleAction(id,action){
   const ix=nozzles.findIndex(x=>x.id===id);if(ix<0)return;
-  if(action==='toggle'){
-    expandedNozzles.has(id)?expandedNozzles.delete(id):expandedNozzles.add(id);
-    renderNozzles();return;
-  }
-  if(action==='delete'){expandedNozzles.delete(id);nozzles.splice(ix,1)}
-  if(action==='duplicate'){const copy={...clone(nozzles[ix]),id:uid('n'),name:`${nozzles[ix].name} 복제`};nozzles.splice(ix+1,0,copy);expandedNozzles.add(copy.id)}
+  if(action==='delete')nozzles.splice(ix,1);
+  if(action==='duplicate'){const copy={...clone(nozzles[ix]),id:uid('n'),name:`노즐 ${nozzles.length+1}`};nozzles.splice(ix+1,0,copy)}
+  if(action==='qty-minus')nozzles[ix].qty=Math.max(0,Math.round(num(nozzles[ix].qty))-1);
+  if(action==='qty-plus')nozzles[ix].qty=Math.round(num(nozzles[ix].qty))+1;
   persist();renderAll();
 }
-function addNozzle(){const n={id:uid('n'),name:`노즐군 ${nozzles.length+1}`,type:'slot',qty:1,cd:.9,velocityMps:config.globalVelocityMps,branchLossKpa:.2,slotLengthMm:500,slotGapMm:1.5,openingsPerNozzle:1,holeDiameterMm:3,widthMm:20,heightMm:2,diameterMm:12,customAreaMm2:500};nozzles.push(n);expandedNozzles.add(n.id);persist();renderAll();setTimeout(()=>document.querySelector(`[data-id="${n.id}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),0)}
+function makeNozzle(type='slot'){
+  const base={id:uid('n'),name:`노즐 ${nozzles.length+1}`,type,qty:1,cd:.9,velocityMps:config.globalVelocityMps,branchLossKpa:.2,slotLengthMm:500,slotGapMm:1.5,openingsPerNozzle:1,holeDiameterMm:3,widthMm:20,heightMm:2,diameterMm:12,customAreaMm2:500};
+  if(type==='multi-hole'){base.openingsPerNozzle=20;base.cd=.88}
+  if(type==='round'){base.diameterMm=10;base.cd=.9}
+  if(type==='rectangle'){base.widthMm=20;base.heightMm=2;base.cd=.9}
+  if(type==='custom'){base.customAreaMm2=300;base.cd=.9}
+  return base;
+}
+function addNozzle(type='slot'){const n=makeNozzle(type);nozzles.push(n);persist();renderAll();setTimeout(()=>document.querySelector(`[data-id="${n.id}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),0)}
 
 function renderSummary(){
   result=calculate();persist();
@@ -221,17 +233,22 @@ function renderCandidates(){
 }
 function addCandidate(){candidates.push({id:uid('c'),name:`후보 ${String.fromCharCode(65+candidates.length)}`,flowM3min:Math.ceil(result.designFlowM3min*1.1*10)/10,pressureKpa:Math.ceil(result.designPressureKpa*1.1*10)/10,motorKw:result.recommendedMotorKw});persist();renderCandidates();updateReport()}
 
-function populatePreset(){ $('presetId').innerHTML=presets.map(p=>`<option value="${p.id}">${p.label}</option>`).join('') }
+function populatePreset(){
+  const root=$('presetCards'); if(!root)return;
+  root.innerHTML=presets.map(p=>`<button type="button" class="preset-card" data-preset="${p.id}"><span class="preset-strength">${escapeHtml(p.label)}</span><b>${escapeHtml(p.desc)}</b><small>${p.def} m/s 기준</small></button>`).join('');
+}
+function syncPresetCards(){document.querySelectorAll('.preset-card').forEach(b=>b.classList.toggle('active',b.dataset.preset===config.presetId))}
 function syncInputs(){
-  ['globalVelocityMps','airTempC','ambientPressureKpa','mainLossKpa','flowMarginPct','pressureMarginPct','blowerEfficiencyPct','motorMarginPct'].forEach(id=>$(id).value=config[id]);
-  ['projectName','lineName','preparedBy'].forEach(id=>$(id).value=config[id]);$('presetId').value=config.presetId;$('reportTheme').value=config.reportTheme;
-  const p=presets.find(x=>x.id===config.presetId)||presets[1];$('presetHint').textContent=`권장 시작구간 ${p.min}–${p.max} m/s`;
+  ['globalVelocityMps','airTempC','ambientPressureKpa','mainLossKpa','flowMarginPct','pressureMarginPct','blowerEfficiencyPct','motorMarginPct'].forEach(id=>{const el=$(id);if(el)el.value=config[id]});
+  ['projectName','lineName','preparedBy'].forEach(id=>{const el=$(id);if(el)el.value=config[id]});
+  if($('reportTheme'))$('reportTheme').value=config.reportTheme;
+  syncPresetCards();
 }
 function updateReport(){
   if(!result)result=calculate();const now=new Date();$('reportSheet').className=`report-sheet report-${config.reportTheme}`;$('rProject').textContent=config.projectName||'-';$('rLine').textContent=config.lineName||'-';$('rPrepared').textContent=config.preparedBy||'-';$('rDate').textContent=now.toLocaleDateString('ko-KR');$('rFlow').textContent=fmt(result.designFlowM3min,2);$('rPressure').textContent=fmt(result.designPressureKpa,2);$('rMotor').textContent=fmt(result.recommendedMotorKw,2);
   $('rNozzles').innerHTML=result.groups.map((g,i)=>`<tr><td>${escapeHtml(g.name||`N${i+1}`)}</td><td>${escapeHtml(nozzleLabels[g.type])} · ${escapeHtml(nozzleSpec(g))}</td><td>${g.qty} EA</td><td>${fmt(g.v,1)} m/s</td><td>${fmt(g.totalAreaMm2,1)} mm²</td><td>${fmt(g.groupFlowM3min,3)} m³/min</td><td>${fmt(g.nozzleDeltaPKpa,3)} kPa</td><td>${fmt(g.branchRequiredKpa,3)} kPa</td></tr>`).join('');
   const p=presets.find(x=>x.id===config.presetId)||presets[1];
-  const inRows=[['제거 강도',p.label],['공기 밀도',`${fmt(result.rho,3)} kg/m³`],['메인 배관/필터 손실',`${fmt(config.mainLossKpa,2)} kPa`],['풍량 / 풍압 여유',`${config.flowMarginPct}% / ${config.pressureMarginPct}%`],['블로워 효율 추정',`${config.blowerEfficiencyPct}%`]];
+  const inRows=[['제거 강도',`${p.label} · ${p.desc}`],['공기 밀도',`${fmt(result.rho,3)} kg/m³`],['메인 배관/필터 손실',`${fmt(config.mainLossKpa,2)} kPa`],['풍량 / 풍압 여유',`${config.flowMarginPct}% / ${config.pressureMarginPct}%`],['블로워 효율 추정',`${config.blowerEfficiencyPct}%`]];
   const outRows=[['총 계산 풍량 ΣQ',`${fmt(result.rawFlowM3min,3)} m³/min`],['설계 풍량',`${fmt(result.designFlowM3min,3)} m³/min (${fmt(result.designFlowM3h,0)} m³/h)`],['지배 노즐군',result.critical?.name||'-'],['지배 분기압',`${fmt(result.criticalBranchKpa,3)} kPa`],['설계 풍압',`${fmt(result.designPressureKpa,3)} kPa / ${fmt(result.designPressureMbar,1)} mbar / ${fmt(result.designPressureMmAq,0)} mmAq`],['축동력 추정',`${fmt(result.shaftPowerKw,3)} kW`]];
   $('rInputs').innerHTML=inRows.map(r=>`<tr><th>${escapeHtml(r[0])}</th><td>${escapeHtml(String(r[1]))}</td></tr>`).join('');$('rResults').innerHTML=outRows.map(r=>`<tr><th>${escapeHtml(r[0])}</th><td>${escapeHtml(String(r[1]))}</td></tr>`).join('');
   $('rCandidates').innerHTML=candidates.map(c=>`<tr><td>${escapeHtml(c.name)}</td><td>${fmt(c.flowM3min,2)} m³/min</td><td>${fmt(c.pressureKpa,2)} kPa</td><td>${fmt(c.motorKw,2)} kW</td><td>${assess(c)?'적합':'부족'}</td></tr>`).join('');$('rWarnings').innerHTML=result.warnings.map(w=>`<p class="report-warning">• ${escapeHtml(w)}</p>`).join('');$('rGenerated').textContent=`Generated ${now.toLocaleString('ko-KR')}`;
@@ -251,14 +268,16 @@ function exportJson(){downloadBlob(new Blob([JSON.stringify({config,nozzles,resu
 async function exportPng(){updateReport();const el=$('reportSheet'),width=Math.ceil(el.scrollWidth),height=Math.ceil(el.scrollHeight);let css='';for(const sheet of document.styleSheets){try{css+=[...sheet.cssRules].map(r=>r.cssText).join('\n')}catch{}}const cloneEl=el.cloneNode(true);const xml=`<div xmlns="http://www.w3.org/1999/xhtml"><style>${css}</style>${cloneEl.outerHTML}</div>`;const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${xml}</foreignObject></svg>`;const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),img=new Image();try{await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});const scale=2,canvas=document.createElement('canvas');canvas.width=width*scale;canvas.height=height*scale;const ctx=canvas.getContext('2d');ctx.scale(scale,scale);ctx.drawImage(img,0,0);const out=await new Promise(res=>canvas.toBlob(res,'image/png',1));if(out)downloadBlob(out,'airflow-ring-blower-report.png');toast('PNG를 저장했습니다.')}catch{toast('PNG 생성에 실패했습니다. PDF/인쇄를 이용해 주세요.')}finally{URL.revokeObjectURL(url)}}
 
 function bind(){
-  ['globalVelocityMps','airTempC','ambientPressureKpa','mainLossKpa','flowMarginPct','pressureMarginPct','blowerEfficiencyPct','motorMarginPct'].forEach(id=>$(id).addEventListener('input',e=>{config[id]=Number(e.target.value);renderAll()}));
+  ['airTempC','ambientPressureKpa','mainLossKpa','flowMarginPct','pressureMarginPct','blowerEfficiencyPct','motorMarginPct'].forEach(id=>$(id)?.addEventListener('input',e=>{config[id]=Number(e.target.value);renderAll()}));
+  $('globalVelocityMps')?.addEventListener('input',e=>{config.globalVelocityMps=Number(e.target.value);nozzles.forEach(n=>n.velocityMps=config.globalVelocityMps);persist();renderAll()});
+  document.querySelectorAll('.preset-card').forEach(b=>b.addEventListener('click',()=>{const p=presets.find(x=>x.id===b.dataset.preset);if(!p)return;config.presetId=p.id;config.globalVelocityMps=p.def;nozzles.forEach(n=>n.velocityMps=p.def);syncInputs();persist();renderAll();toast(`${p.label} · ${p.def} m/s 기준을 적용했습니다.`)}));
+  document.querySelectorAll('.quick-nozzle').forEach(b=>b.addEventListener('click',()=>addNozzle(b.dataset.type)));
+  $('expertToggleBtn')?.addEventListener('click',()=>{const panel=$('expertPanel');panel.hidden=!panel.hidden;$('expertToggleBtn').textContent=panel.hidden?'전문가 설정':'전문가 설정 닫기'});
   ['projectName','lineName','preparedBy'].forEach(id=>$(id).addEventListener('input',e=>{config[id]=e.target.value;persist();updateReport()}));
-  $('presetId').addEventListener('change',e=>{config.presetId=e.target.value;const p=presets.find(x=>x.id===config.presetId);if(p)config.globalVelocityMps=p.def;syncInputs();persist()});
-  $('applyVelocityBtn').addEventListener('click',()=>{nozzles.forEach(n=>n.velocityMps=config.globalVelocityMps);persist();renderAll();toast(`${config.globalVelocityMps} m/s를 전체 노즐에 적용했습니다.`)});
-  $('addNozzleBtn').addEventListener('click',addNozzle);$('addCandidateBtn').addEventListener('click',addCandidate);
-  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));$('themeBtn').addEventListener('click',cycleTheme);$('shareBtn').addEventListener('click',shareState);$('saveBtn').addEventListener('click',saveCurrent);
+  $('addCandidateBtn').addEventListener('click',addCandidate);
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));$('themeBtn').addEventListener('click',cycleTheme);$('shareBtn').addEventListener('click',shareState);$('saveBtn').addEventListener('click',saveCurrent);$('saveBtnInResult')?.addEventListener('click',saveCurrent);
   $('reportTheme').addEventListener('change',e=>{config.reportTheme=e.target.value;persist();updateReport()});$('jsonBtn').addEventListener('click',exportJson);$('pngBtn').addEventListener('click',exportPng);$('pdfBtn').addEventListener('click',()=>{activateTab('report');setTimeout(()=>window.print(),50)});
-  $('clearHistoryBtn').addEventListener('click',()=>{history=[];localStorage.setItem(HISTORY_KEY,'[]');renderHistory();toast('이력을 삭제했습니다.')});$('resetBtn').addEventListener('click',()=>{config=clone(defaultConfig);nozzles=clone(defaultNozzles);candidates=clone(defaultCandidates);syncInputs();renderAll();toast('기본 다중 노즐 예제로 초기화했습니다.')});
+  $('clearHistoryBtn').addEventListener('click',()=>{history=[];localStorage.setItem(HISTORY_KEY,'[]');renderHistory();toast('이력을 삭제했습니다.')});$('resetBtn').addEventListener('click',()=>{config=clone(defaultConfig);nozzles=clone(defaultNozzles);candidates=clone(defaultCandidates);syncInputs();renderAll();toast('기본 예제로 초기화했습니다.')});
 }
 
 populatePreset();loadShared();applyTheme();syncInputs();bind();renderAll();
