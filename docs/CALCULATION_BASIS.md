@@ -1,89 +1,140 @@
-# Calculation Basis
+# AirFlow Select v1.1 — Multi-Nozzle Ring Blower Calculation Basis
 
-## Purpose
+이 문서는 도금 연속라인에서 여러 종류의 Blow-off 노즐을 하나의 링블로워/매니폴드에 병렬 연결할 때 사용하는 초기 선정 계산의 기준을 정리합니다.
 
-AirFlow Select는 산업용 Blow-off 공정의 **초기 블로워 Duty Point**를 빠르게 산정하기 위한 단순화 계산기입니다. 최종 설계/구매용 CFD 또는 제조사 선정 프로그램을 대체하지 않습니다.
+## 1. 설계 철학
 
-## 1. Air density
+사용자는 노즐군별로 형상, 규격, 개구수, 노즐 수량, 목표 출구 풍속, 방출계수 Cd, 분기 손실을 입력합니다. 계산기는 각 노즐군의 요구 풍량과 요구압을 구한 뒤 전체 시스템의 링블로워 Duty Point를 산정합니다.
 
-```text
-ρ = P / (R · T)
-R = 287.05 J/(kg·K)
-```
+병렬 노즐의 기본 원칙은 다음과 같습니다.
 
-사용자가 입력한 공기 온도와 주변 절대압을 기준으로 밀도를 계산합니다.
+- **전체 요구 풍량 = 각 노즐군 풍량의 합계**
+- **공급 풍압 = 각 분기 요구압 중 최대값 + 공통 메인 손실**
+- 병렬 분기의 압력은 서로 더하지 않습니다.
 
-## 2. Geometric opening area
+## 2. 공기 밀도
 
-```text
-Multi-hole: A = n · πd²/4
-Slot:       A = n · L · g
-Rectangle:  A = n · W · H
-Round:      A = n · πd²/4
-Custom:     A = user input area
-```
+상온 저압 공기에 대해 이상기체식으로 계산합니다.
 
-여러 노즐 Ass'y가 병렬 운전되면 전체 개구 면적은 Ass'y 수량만큼 합산합니다.
+`rho = P / (R * T)`
 
-## 3. Velocity-basis calculation
+- `R = 287.05 J/(kg·K)`
+- P: 대기 절대압 Pa(a)
+- T: 절대온도 K
 
-사용자가 목표 등가 출구 풍속 `V`를 지정할 때:
+## 3. 노즐 형상별 개구면적
 
-```text
-Q = A · V
-q = 1/2 · ρ · V²
-ΔP_nozzle = 1/2 · ρ · (V/Cd)²
-```
+### 다공 홀
 
-`Cd`는 노즐 형상, 수축 및 방출 특성을 단순화하여 반영하는 보정계수입니다.
+노즐 1개에 동일 직경 d의 홀이 n개 있을 때:
 
-## 4. Pressure-basis calculation
+`A_nozzle = n * pi * d^2 / 4`
 
-사용자가 노즐 차압 `ΔP_nozzle`을 지정할 때:
+### 슬롯 / 장공
 
-```text
-V = Cd · √(2 · ΔP_nozzle / ρ)
-Q = A · V
-```
+길이 L, Gap g의 슬롯이 n개 있을 때:
 
-## 5. Blower duty point
+`A_nozzle = n * L * g`
 
-```text
-Q_design = Q · (1 + Flow Margin)
-P_design = (ΔP_nozzle + ΔP_system) · (1 + Pressure Margin)
-```
+### 사각 개구
 
-동일 노즐을 병렬로 추가하면 풍량은 합산되지만 동일한 분배 조건에서 노즐 자체 요구 차압은 그대로라는 가정을 사용합니다.
+폭 W, 높이 H의 개구가 n개 있을 때:
 
-## 6. Power estimate
+`A_nozzle = n * W * H`
 
-```text
-Air Power = ΔP · Q
-Shaft Power ≈ Air Power / η
-Recommended Motor Requirement = Shaft Power · (1 + Motor Margin)
-```
+### 원형 개구
 
-웹 UI는 계산 요구값보다 큰 일반적인 표준 모터 프레임을 함께 표시합니다.
+직경 d의 원형 개구가 n개 있을 때:
 
-## 7. Removal presets
+`A_nozzle = n * pi * d^2 / 4`
 
-제거 강도 프리셋은 **공인 청결도 표준이 아닙니다.** 도금/세정/Blow-off 공정에서 초기 시험점을 빠르게 설정하기 위한 경험적 범위입니다.
+### 사용자 지정 면적
 
-| Level | Initial velocity range | Typical target |
-| --- | ---: | --- |
-| 1 | 15–25 m/s | Loose dust / preliminary drying |
-| 2 | 25–40 m/s | General water droplets |
-| 3 | 40–55 m/s | Water film / stronger rinse water |
-| 4 | 45–65 m/s | Chips / scale / heavier debris |
-| 5 | 55–80 m/s | Viscous liquid / strong removal |
+노즐 1개의 총 유효 개구면적을 직접 입력합니다.
 
-현장 시험으로 조정해야 하며, 노즐-대상 거리, 각도, 라인 속도, 액체 물성, 표면 형상, 이물 부착력에 따라 결과가 달라집니다.
+## 4. 노즐군 풍량
 
-## 8. Final blower selection
+목표 출구 풍속 V를 실제 노즐 출구에서 필요한 평균 속도로 정의합니다.
 
-카탈로그의 최대 풍량과 최대 압력은 보통 동시에 발생하지 않습니다. 최종 블로워 모델은 제조사의 **P–Q 성능곡선에서 요구 풍량과 요구 압력을 동시에 만족하는 운전점**을 확인해야 합니다.
+노즐 1개 풍량:
 
-## References
+`Q_one = A_nozzle * V`
 
-- Kaeser Compressors, “Blowers for air knives” — https://pr.kaeser.com/en/compressed-air-resources/kaeser-talks-shop/blowers-for-air-knives.aspx
-- Atlas Copco, “Compressed Air Manual, 9th edition”, nozzle gas-flow section — https://www.atlascopco.com/content/dam/atlas-copco/local-countries/greece/documents/mechanical-electrical-contractors/Compressed%20Air%20Manual%209th%20edition1.pdf
+같은 노즐이 N개 있을 때 그룹 풍량:
+
+`Q_group = A_nozzle * N * V`
+
+웹서비스는 결과를 m³/min으로 환산합니다.
+
+## 5. 풍속에서 노즐 차압 계산
+
+동압:
+
+`q = 0.5 * rho * V^2`
+
+노즐 수축/손실 효과를 방출계수 Cd로 단순화하면 목표 출구 풍속을 만들기 위한 노즐 차압은:
+
+`DeltaP_nozzle = 0.5 * rho * (V / Cd)^2`
+
+Cd는 형상과 실제 제작 상태에 따라 달라질 수 있으므로 제조사 시험값 또는 실측값으로 보정하는 것이 좋습니다.
+
+## 6. 분기 요구압
+
+각 노즐군에는 해당 분기 호스, 밸브, 엘보, 매니폴드 분기관 등의 손실을 별도로 입력할 수 있습니다.
+
+`P_branch_i = DeltaP_nozzle_i + Loss_branch_i`
+
+## 7. 여러 노즐군의 링블로워 요구점
+
+모든 노즐군이 하나의 매니폴드에 병렬 연결되어 동시에 운전하는 경우:
+
+`Q_total = SUM(Q_group_i)`
+
+`P_critical = MAX(P_branch_i)`
+
+풍량 여유 Mq와 풍압 여유 Mp, 공통 메인 손실 Loss_main을 반영하면:
+
+`Q_design = Q_total * (1 + Mq)`
+
+`P_design = (P_critical + Loss_main) * (1 + Mp)`
+
+**중요:** 병렬 노즐의 압력을 합산하면 안 됩니다. 링블로워는 모든 노즐이 요구하는 유량의 합계를 공급하면서 가장 불리한 분기의 압력을 동시에 만족해야 합니다.
+
+노즐군별 `P_branch` 차이가 큰데 같은 매니폴드를 사용하면 저저항 분기로 공기가 더 흐를 수 있으므로 밸런싱 밸브, 오리피스, 분기 배관 크기 조정 등이 필요할 수 있습니다.
+
+## 8. 동력 추정
+
+공기동력:
+
+`P_air(kW) = DeltaP(kPa) * Q(m^3/s)`
+
+추정 축동력:
+
+`P_shaft = P_air / eta`
+
+모터 여유율을 반영한 뒤 표준 모터 프레임 중 상위 값을 초기 권장값으로 표시합니다. 실제 링블로워 모터는 제조사 제품군과 P–Q 곡선을 우선합니다.
+
+## 9. 링블로워 카탈로그 단위
+
+웹서비스는 다음 단위를 동시에 제공합니다.
+
+- m³/min
+- m³/h
+- kPa(g)
+- mbar (`1 kPa = 10 mbar`)
+- mmAq (`1 kPa ≈ 101.97 mmAq`)
+
+## 10. 사용 한계
+
+이 계산은 초기 링블로워 용량 선정용 단순화 모델입니다. 다음 항목은 직접 해석하지 않습니다.
+
+- 노즐과 제품 사이 거리에서의 실제 도달 풍속 감쇠
+- 분사 각도 및 충돌 제트 효과
+- 라인 속도와 체류시간
+- 물막 두께, 점도, 표면장력
+- 제품 표면 형상 및 홈/단차
+- 매니폴드 내부 유량 불균형
+- 노즐 제트 간 상호 간섭
+- 고압/고속에서의 압축성 유동
+
+최종 구매 모델은 제조사의 실제 P–Q 곡선에서 `Q_design`과 `P_design`을 동시에 만족하는지 확인해야 합니다.

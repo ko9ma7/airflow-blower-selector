@@ -1,4 +1,7 @@
-# AirFlow Select — Blower & Nozzle Sizing
+# AirFlow Select — Multi-Nozzle Ring Blower Sizing
+
+> **v1.1 핵심 변경:** 여러 종류의 노즐을 한 계산에 동시에 추가하고, 각 노즐의 규격·개구수·수량·목표 풍속을 입력해 그룹별 풍량/풍압을 계산합니다. 병렬 링블로워 선정점은 `총 풍량 = ΣQ`, `필요 풍압 = MAX(분기 요구압) + 공통 손실` 원칙으로 산정합니다.
+
 
 도금 연속라인의 Air Blow 공정에서 **다공 홀, 슬롯/장공, 사각, 원형, 사용자 지정 면적 노즐**을 기준으로 필요한 풍속·풍량·풍압·모터 용량을 빠르게 산정하고, 블로워 후보를 비교하며 PDF/PNG 보고서를 출력하는 정적 웹 계산기입니다.
 
@@ -99,7 +102,7 @@ npm run build
 
 ### Windows 원클릭
 
-`run-github-bootstrap.cmd`를 더블클릭하는 것을 권장합니다. v1.0.4부터 Bootstrap은 사용자가 제공한 검증된 배치 흐름을 기준으로 다시 작성한 ASCII + Windows CRLF 전용 CMD입니다. PowerShell Bootstrap은 사용하지 않습니다. `gh repo view`가 실패하면 이를 오류로 종료하지 않고 저장소가 아직 없는 정상 상황으로 간주하여 `gh repo create`를 실행합니다. Git/GitHub CLI 확인 → 로그인 → repo 확인/생성 → origin 설정 → commit/push → Pages/Actions 확인 → `v1.0.4` tag 생성을 순차 처리합니다. Node.js/npm은 로컬 검증에만 선택적으로 사용하며, 없어도 GitHub Actions가 원격에서 빌드합니다. Token/Password는 스크립트에 저장하지 않습니다.
+`run-github-bootstrap.cmd`를 더블클릭하는 것을 권장합니다. v1.1.0부터 Bootstrap은 사용자가 제공한 검증된 배치 흐름을 기준으로 다시 작성한 ASCII + Windows CRLF 전용 CMD입니다. PowerShell Bootstrap은 사용하지 않습니다. `gh repo view`가 실패하면 이를 오류로 종료하지 않고 저장소가 아직 없는 정상 상황으로 간주하여 `gh repo create`를 실행합니다. Git/GitHub CLI 확인 → 로그인 → repo 확인/생성 → origin 설정 → commit/push → Pages/Actions 확인 → `v1.1.0` tag 생성을 순차 처리합니다. Node.js/npm은 로컬 검증에만 선택적으로 사용하며, 없어도 GitHub Actions가 원격에서 빌드합니다. Token/Password는 스크립트에 저장하지 않습니다.
 
 ## Configuration
 
@@ -120,7 +123,7 @@ GitHub Pages Settings에서 Custom domain을 등록하고 HTTPS 강제를 활성
 
 - Description: `Industrial air blower and nozzle sizing calculator with PDF/PNG engineering reports`
 - Topics: `engineering`, `blower`, `air-knife`, `calculator`, `vanilla-js`, `static-site`, `github-pages`
-- Initial tag: `v1.0.4`
+- Initial tag: `v1.1.0`
 - Initial commit: `feat: launch airflow blower sizing calculator`
 
 ## License
