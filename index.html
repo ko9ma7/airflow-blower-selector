@@ -43,65 +43,83 @@
 
   <main>
     <section id="tab-calculator" class="tab-panel">
-      <section class="page-card setup-card">
-        <div class="card-head row">
-          <div><span class="eyebrow blue">STEP 01</span><h1 class="page-title">작업 목표와 공통 조건</h1><p>청결/제거 목표로 기준 풍속을 정한 뒤 노즐별로 같은 값 또는 개별 값을 적용합니다.</p></div>
-          <div class="parallel-badge"><b>병렬 노즐 계산</b><span>풍량 = ΣQ · 풍압 = MAX(각 분기압) + 공통손실</span></div>
+      <section class="workspace-toolbar page-card" aria-labelledby="workspaceTitle">
+        <div class="workspace-title">
+          <div><span class="eyebrow blue">ENGINEERING WORKSPACE</span><h1 id="workspaceTitle">노즐 구성 → 링블로워 선정</h1></div>
+          <div class="parallel-rule"><span>병렬 운전</span><b>Q = ΣQᵢ</b><i></i><b>P = MAX(Pᵢ) + Loss</b></div>
         </div>
-        <div class="setup-grid">
-          <label class="field"><span>제거 강도 프리셋</span><select id="presetId"></select></label>
-          <label class="field"><span>기준 출구 풍속</span><div class="unit-input"><input id="globalVelocityMps" type="number" min="0" step="1"><em>m/s</em></div></label>
-          <div class="apply-velocity"><button id="applyVelocityBtn" class="btn primary">전체 노즐에 적용</button><small id="presetHint"></small></div>
+        <div class="condition-bar">
+          <label class="field field-wide"><span>제거 목표 / 기준</span><select id="presetId"></select></label>
+          <label class="field"><span>기준 풍속</span><div class="unit-input"><input id="globalVelocityMps" type="number" min="0" step="1"><em>m/s</em></div><small id="presetHint"></small></label>
+          <div class="apply-velocity"><span>노즐 일괄 변경</span><button id="applyVelocityBtn" class="btn primary">전체 노즐에 적용</button></div>
           <label class="field"><span>공기 온도</span><div class="unit-input"><input id="airTempC" type="number" step="1"><em>°C</em></div></label>
           <label class="field"><span>대기 절대압</span><div class="unit-input"><input id="ambientPressureKpa" type="number" min="50" step="0.1"><em>kPa(a)</em></div></label>
         </div>
       </section>
 
-      <section class="page-card nozzle-section">
-        <div class="card-head row">
-          <div><span class="eyebrow blue">STEP 02</span><h2>노즐 구성</h2><p>실제 라인에 설치할 노즐을 종류별로 추가하세요. 규격과 수량을 입력하면 각 그룹의 풍량·풍압을 즉시 계산합니다.</p></div>
-          <button id="addNozzleBtn" class="btn primary">＋ 노즐 추가</button>
+      <div class="calc-workspace">
+        <div class="work-left">
+        <section class="nozzle-board page-card">
+          <div class="board-head">
+            <div>
+              <div class="section-kicker"><span>01</span> NOZZLE SCHEDULE</div>
+              <h2>설치 노즐 구성표</h2>
+              <p>노즐군을 행 단위로 비교합니다. 규격·수량·풍속을 바꾸면 풍량과 요구압이 즉시 갱신됩니다.</p>
+            </div>
+            <div class="board-actions"><span class="count-chip"><b id="nozzleCount">0</b> groups</span><button id="addNozzleBtn" class="btn primary">+ 노즐군 추가</button></div>
+          </div>
+          <div id="nozzleList" class="nozzle-list"></div>
+          <div class="board-legend">
+            <span><i class="legend-dot critical"></i> 지배 노즐군</span>
+            <span>풍량은 모든 노즐군 합산</span>
+            <span>풍압은 가장 높은 분기 요구압 기준</span>
+          </div>
+        </section>
+
+
+          <section class="data-card selection-card candidate-section">
+            <div class="card-head row"><div><span class="section-kicker"><span>04</span> BLOWER CHECK</span><h2>링블로워 후보 비교</h2><p>제조사 P–Q 곡선에서 <b>설계 풍압 위치의 실제 풍량</b>을 읽어 입력하세요.</p></div><button id="addCandidateBtn" class="btn secondary">+ 후보 추가</button></div>
+            <div class="table-wrap"><table class="candidate-table"><thead><tr><th>모델</th><th>풍량 @ 설계압</th><th>가능 풍압</th><th>모터</th><th>판정</th><th></th></tr></thead><tbody id="candidateBody"></tbody></table></div>
+            <p class="footnote">※ 카탈로그의 최대 풍량과 최대 풍압은 서로 다른 운전점일 수 있습니다. 요구 풍압에서의 실제 풍량을 기준으로 확인하세요.</p>
+          </section>
         </div>
-        <div id="nozzleList" class="nozzle-list"></div>
-        <div class="nozzle-help"><b>입력 예</b><span>슬롯 600 × 1.5 mm, 2EA</span><span>Ø3 mm 홀 × 24공/노즐, 4EA</span><span>사각 20 × 2 mm, 3EA</span></div>
-      </section>
 
-      <section class="page-card system-card">
-        <div class="card-head"><span class="eyebrow blue">STEP 03</span><h2>링블로워 선정 보정</h2><p>메인 배관 손실과 선정 여유율을 반영합니다. 개별 노즐 분기 손실은 각 노즐 카드에서 입력합니다.</p></div>
-        <div class="system-grid">
-          <label class="field"><span>공통 메인 배관/필터 손실</span><div class="unit-input"><input id="mainLossKpa" type="number" min="0" step="0.1"><em>kPa</em></div></label>
-          <label class="field"><span>풍량 여유</span><div class="unit-input"><input id="flowMarginPct" type="number" min="0" step="1"><em>%</em></div></label>
-          <label class="field"><span>풍압 여유</span><div class="unit-input"><input id="pressureMarginPct" type="number" min="0" step="1"><em>%</em></div></label>
-          <label class="field"><span>블로워 효율 추정</span><div class="unit-input"><input id="blowerEfficiencyPct" type="number" min="10" max="100" step="1"><em>%</em></div></label>
-          <label class="field"><span>모터 여유</span><div class="unit-input"><input id="motorMarginPct" type="number" min="0" step="1"><em>%</em></div></label>
-        </div>
-      </section>
+        <aside class="selection-rail" aria-label="링블로워 선정 결과">
+          <div class="selection-sticky">
+            <section class="duty-panel">
+              <div class="duty-head"><span class="eyebrow">02 · REQUIRED DUTY POINT</span><h2>링블로워 선정점</h2><p>P–Q 곡선에서 두 조건을 동시에 만족해야 합니다.</p></div>
+              <div class="duty-primary">
+                <div><span>설계 풍량</span><strong id="dutyFlow">-</strong><em>m³/min</em></div>
+                <div><span>설계 풍압</span><strong id="dutyPressure">-</strong><em>kPa(g)</em></div>
+              </div>
+              <div class="motor-line"><span>권장 모터 최소</span><strong><b id="dutyMotor">-</b> kW</strong></div>
+            </section>
 
-      <section class="result-hero duty-hero">
-        <div><span class="eyebrow">RING BLOWER REQUIRED DUTY POINT</span><h1>링블로워 최소 선정점</h1><p>모든 노즐을 동시에 사용하는 병렬 운전 기준입니다. 카탈로그 P–Q 곡선에서 아래 풍량과 풍압을 <b>동시에</b> 만족하는 모델을 선택하세요.</p></div>
-        <div class="duty-point triple">
-          <div><span>설계 풍량</span><strong id="dutyFlow">-</strong><em>m³/min</em></div><i></i>
-          <div><span>설계 풍압</span><strong id="dutyPressure">-</strong><em>kPa(g)</em></div><i></i>
-          <div><span>권장 모터</span><strong id="dutyMotor">-</strong><em>kW 이상</em></div>
-        </div>
-      </section>
+            <section class="quick-metrics page-card">
+              <div><span>총 계산 풍량</span><b id="metricRawFlow">-</b><em>m³/min · ΣQ</em></div>
+              <div><span>환산 풍량</span><b id="metricFlowHour">-</b><em>m³/h</em></div>
+              <div><span>설계 풍압</span><b id="metricMbar">-</b><em>mbar</em></div>
+              <div><span>설계 풍압</span><b id="metricMmAq">-</b><em>mmAq</em></div>
+              <div class="wide"><span>지배 노즐군</span><b id="metricCritical" class="metric-text">-</b><em>가장 높은 분기 요구압</em></div>
+              <div class="wide"><span>이론 축동력</span><b><span id="metricShaft">-</span> kW</b><em id="metricPowerNote">-</em></div>
+            </section>
 
-      <section class="metrics-grid six">
-        <article class="metric-card"><span>총 계산 풍량</span><strong><b id="metricRawFlow">-</b> <small>m³/min</small></strong><em>여유율 적용 전 ΣQ</em></article>
-        <article class="metric-card"><span>환산 풍량</span><strong><b id="metricFlowHour">-</b> <small>m³/h</small></strong><em>링블로워 카탈로그용</em></article>
-        <article class="metric-card"><span>설계 풍압</span><strong><b id="metricMbar">-</b> <small>mbar</small></strong><em>1 kPa = 10 mbar</em></article>
-        <article class="metric-card"><span>설계 풍압</span><strong><b id="metricMmAq">-</b> <small>mmAq</small></strong><em>링블로워 카탈로그용</em></article>
-        <article class="metric-card"><span>지배 노즐군</span><strong class="metric-text" id="metricCritical">-</strong><em>가장 높은 분기 요구압</em></article>
-        <article class="metric-card emphasis"><span>이론 축동력</span><strong><b id="metricShaft">-</b> <small>kW</small></strong><em id="metricPowerNote">-</em></article>
-      </section>
+            <details class="advanced-card page-card">
+              <summary><span><b>03</b> 시스템 보정값</span><small>배관손실 · 여유율 · 효율</small></summary>
+              <div class="advanced-grid">
+                <label class="field"><span>메인 배관/필터 손실</span><div class="unit-input"><input id="mainLossKpa" type="number" min="0" step="0.1"><em>kPa</em></div></label>
+                <label class="field"><span>풍량 여유</span><div class="unit-input"><input id="flowMarginPct" type="number" min="0" step="1"><em>%</em></div></label>
+                <label class="field"><span>풍압 여유</span><div class="unit-input"><input id="pressureMarginPct" type="number" min="0" step="1"><em>%</em></div></label>
+                <label class="field"><span>블로워 효율</span><div class="unit-input"><input id="blowerEfficiencyPct" type="number" min="10" max="100" step="1"><em>%</em></div></label>
+                <label class="field"><span>모터 여유</span><div class="unit-input"><input id="motorMarginPct" type="number" min="0" step="1"><em>%</em></div></label>
+              </div>
+            </details>
 
-      <section id="warningBox" class="warning-box" hidden><strong>검토 필요</strong><div id="warningList"></div></section>
+            <section id="warningBox" class="warning-box" hidden><strong>검토 필요</strong><div id="warningList"></div></section>
+          </div>
+        </aside>
+      </div>
 
-      <section class="data-card selection-card">
-        <div class="card-head row"><div><h2>링블로워 후보 비교</h2><p>카탈로그 P–Q 곡선에서 <b>설계 풍압에서 실제 가능한 풍량</b>을 읽어 입력하세요.</p></div><button id="addCandidateBtn" class="btn secondary">후보 추가</button></div>
-        <div class="table-wrap"><table class="candidate-table"><thead><tr><th>모델</th><th>풍량 @ 설계압</th><th>가능 풍압</th><th>모터</th><th>판정</th><th></th></tr></thead><tbody id="candidateBody"></tbody></table></div>
-        <p class="footnote">※ “최대 풍량”과 “최대 풍압”은 서로 다른 운전점일 수 있습니다. 가능하면 제조사 P–Q 곡선에서 요구 풍압 위치의 풍량을 사용하세요.</p>
-      </section>
     </section>
 
     <section id="tab-report" class="tab-panel" hidden>
@@ -132,7 +150,7 @@
     </section>
   </main>
 
-  <footer class="site-footer"><span>AirFlow Select v1.1 · Multi-Nozzle Ring Blower Sizing</span><button id="resetBtn">기본값 초기화</button></footer>
+  <footer class="site-footer"><span>AirFlow Select v1.2 · Multi-Nozzle Ring Blower Sizing</span><button id="resetBtn">기본값 초기화</button></footer>
   <div id="toast" class="toast" role="status" hidden></div>
 </div>
 <script type="module" src="./src/app.js"></script>

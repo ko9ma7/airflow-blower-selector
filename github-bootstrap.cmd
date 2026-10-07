@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
 rem ============================================================
-rem AirFlow Select - GitHub one-click bootstrap v1.1.0
+rem AirFlow Select - GitHub one-click bootstrap v1.2.0
 rem ASCII-only CMD. Repository-not-found is a normal create case.
 rem ============================================================
 set "REPO_NAME=airflow-blower-selector"
@@ -11,7 +11,7 @@ set "REPO_VISIBILITY=public"
 set "REPO_DESCRIPTION=Industrial air blower and nozzle sizing calculator with engineering reports"
 set "REPO_TOPICS=github-pages,blower,engineering-calculator,air-knife,nozzle,static-site,vanilla-js"
 set "DEFAULT_BRANCH=main"
-set "INITIAL_TAG=v1.1.0"
+set "INITIAL_TAG=v1.2.0"
 set "INITIAL_COMMIT=feat: launch AirFlow Select"
 set "UPDATE_COMMIT=chore: update AirFlow Select"
 set "OPEN_AFTER_DEPLOY=1"
@@ -22,7 +22,7 @@ set "NODE_OK=0"
 
 echo.
 echo ============================================================
-echo  AirFlow Select - GitHub Bootstrap v1.1.0
+echo  AirFlow Select - GitHub Bootstrap v1.2.0
 echo ============================================================
 echo  Project: %CD%
 echo.
